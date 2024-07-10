@@ -11,3 +11,14 @@ Whatsapp pair code spam
 
 ![demo1](https://github.com/0x0Crypto/wapairspam/assets/171881595/b563dd05-523e-4668-beaa-ffbc0bea95ec)
 
+## Usage
+
+**Ex:**
+```
+./pairspam -target 5511999010101
+```
+
+**Ex 2:**
+```
+./pairspam -target 11111111111 -threads 100
+```
