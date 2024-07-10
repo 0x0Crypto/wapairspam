@@ -26,12 +26,12 @@ var asciiArt = `
 func SentCode(target string, done chan bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	for range done {
-		container, err := sqlstore.New("sqlite3", "file:wapairspam.db?_foreign_keys=on", nil)
-		if err != nil {
-			panic(err)
-		}
+	container, err := sqlstore.New("sqlite3", "file:wapairspam.db?_foreign_keys=on", nil)
+	if err != nil {
+		panic(err)
+	}
 
+	for range done {
 		deviceStore, err := container.GetFirstDevice()
 		if err != nil {
 			panic(err)
