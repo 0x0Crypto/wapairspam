@@ -15,7 +15,7 @@ Whatsapp pair code spam
 
 **Ex:**
 ```
-./pairspam -target 5511999010101
+./pairspam -target 5511999999999
 ```
 
 **Ex 2:**
